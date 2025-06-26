@@ -100,14 +100,15 @@
                 //Top
                     for (let i=0; i<this.casesIndicesT.length; i++) {
                         console.log("ici c est reset indice function");
-                        this.casesIndicesT[i].innerHtml = "";
+                        this.casesIndicesT[i].innerHTML = " ";
                     }    
                 //left
                     for (let i=0; i<this.casesIndicesL.length; i++) {
-                        this.casesIndicesL[i].innerHtml = "";
+                        this.casesIndicesL[i].innerHTML = " ";
                     }      
 
                 },
+               
                 resetGrid: function(){
                     this.mouseUp();
                     //1
@@ -223,7 +224,7 @@
                         }
                         //Masquage Indices
                         for (let i=0; i<this.casesIndicesT.length; i++) {
-                                 console.log("pouet");
+                            console.log("pouet");
                             this.casesIndicesT[i].dataset.html2canvasIgnore = "true";
                         }
                         for (let i=0; i<this.casesIndicesL.length; i++) {
