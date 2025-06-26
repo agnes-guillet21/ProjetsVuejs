@@ -7,9 +7,9 @@ Ici, tu trouveras une collection de mini-apps et d'exercices réalisés dans le 
 
 👉 **1 branche = 1 projet**
 
-| Branche         | Projet                             |
-|----------------|-------------------------------------|
+| Branche         | Projet                                           |
+|----------------|---------------------------------------------------|
 | `Portfolio`    |  
-| `Nonogramme`   |  
+| `Nonogramme`   |  creation jeu nonogramme avec import d'images
 |                |  
 | ...            | D'autres projets à venir... 🚧        |
