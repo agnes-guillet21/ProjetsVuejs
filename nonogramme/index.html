@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+    <html lang="fr">
+    <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <title>Nonogramme</title>
+
+    <script src="https://unpkg.com/vue@3"></script>
+    <script src="html2canvas.js"></script> 
+    
+    <!-- Feuilles de style -->
+        <link href='http://font.googleapis.com/css?family=Roboto' rel="stylesheet" href="text.css">
+        <link rel="stylesheet" href="style.css">
+    </head>
+    <body>
+        <div id="app">
+            <input type="checkbox" id="checkboxColorMode" v-model="colorMode">
+            <label for="checkboxColorMode">Activer le mode coloration</label>
+            <div id="container" :style="'zoom:'+zoom+'%' ">
+                <!-- Indices haut -->
+                 <div id="caseIndiceT_First"></div>
+                 <div class="caseIndiceT noselect" v-for="c in 25" :id="'indiceT_'+c"></div>
+
+                <!-- Grille -->
+                 	<div class="ligne" v-for="l in 25"> <!--creation ligne -->
+                    <span v-for="c in 25"> <!-- creation colonne -->
+                        <!-- Indices gauches -->
+                        <div v-if="c == 1" class="caseIndiceL noselect" :id="'indiceL_'+l"></div>
+                        <!-- Case de la ligne -->
+                        <div class="case" :id="l+'_'+c" @mouseover="colorize" @mousedown="mouseDown" @mouseup="mouseUp"></div>
+                      </span>
+                 </div>
+
+            </div>
+            <div id="toolBar">
+                <button @click="resetGridAndIndices">Vider la grille</button>
+                <button @click="validGrid">Exporter la grille</button>
+                <button @click="zoomPlus">Zoom +</button>
+                <button @click="zoomMinus">Zoom -</button>
+                <input type="file" @change="loadImage"> 
+            </div>
+            
+            <canvas width="25" height="25" id="previewCanvas">
+                Désole votre navigatuer ne prend pas en charge html5.
+            </canvas>
+        </div>
+
+    </body>
+
+    <script type="text/javascript">
+        Vue.createApp({
+
+            data(){
+                return {
+                    zoom: 75,
+                    isMouseDown: false,
+                    colorMode: true,
+                    casesColored: [],
+                    casesColoredLoaded: [],
+                    arrayColCases: [],
+                    arrayLineCases: [],
+                    casesIndicesT: [],
+                    casesIndicesL: [],
+
+                }
+            },//data
+            mounted: function () {
+                this.casesIndicesT = document.getElementsByClassName("caseIndiceT");
+                this.casesIndicesL = document.getElementsByClassName("caseIndiceL");
+
+
+            }, //mounted
+            methods: {
+
+                colorize: function(event) {
+                    if(this.isMouseDown) {
+                        let targetId = event.currentTarget.id; // Pour savoir sur quel conteneur l'event est attaché
+                        let targetDiv = event.target; //Pour agir sur l’élément vraiment utilisé
+                        if( this.colorMode) {
+                            targetDiv.classList.add("blackBg");
+                            this.casesColored.push(targetDiv);
+                        } else {
+                                targetDiv.classList.remove("blackBg")
+                        }
+                    }
+                },
+              
+                mouseDown: function (event) {
+                    this.isMouseDown = true;
+                    this.colorize(event);
+                },
+
+                mouseUp: function (event) {
+                    this.isMouseDown = false; // arret de dessin
+                }, 
+
+                resetIndices: function() {
+                    // clean indices
+                //Top
+                    for (let i=0; i<this.casesIndicesT.length; i++) {
+                        console.log("ici c est reset indice function");
+                        this.casesIndicesT[i].innerHtml = "";
+                    }    
+                //left
+                    for (let i=0; i<this.casesIndicesL.length; i++) {
+                        this.casesIndicesL[i].innerHtml = "";
+                    }      
+
+                },
+                resetGrid: function(){
+                    this.mouseUp();
+                    //1
+                    let nbCases = this.casesColored.length;
+                    for (let i=0; i<nbCases; i++){
+                        if (this.casesColored[i] && this.casesColored[i].classList){
+                            this.casesColored[i].classList.remove("blackBg");
+                        }
+                    }
+                    this.casesColored = [];
+                    
+                    //2
+                    nbCases = this.casesColoredLoaded.length;
+                    for (let i=0; i< nbCases; i++){
+                        if (this.casesColoredLoaded[i] && this.casesColoredLoaded[i].classList){
+                            this.casesColoredLoaded[i].classList.remove("blackBg");
+                        }
+                    }
+                    this.casesColored = [];
+                },
+
+                removeCanvas: function() {
+                    let elementsToClean = document.getElementsByTagName("canvas"), index;
+
+                    //supp canvas 
+                    for (index=elementsToClean.length -1; index >= 0; index--){
+                        if (elementsToClean[index].id != "previewCanvas") {
+                            elementsToClean[index].parentNode.removeChild(elementsToClean[index]);
+                        }
+                    }
+                    let canvas = document.getElementById("previewCanvas");
+                    const context =canvas.getContext('2d'); //recuperer context
+                    context.clearRect(0,0, canvas.width, canvas.height); // nettoyer canvas
+                },
+
+                resetGridAndIndices: function() {
+                    this.resetGrid();
+                    this.resetIndices();
+                    this.removeCanvas();
+                }, 
+
+                zoomPlus: function() {
+                    this.mouseUp();
+                    if (this.zoom < 100){
+                        this.zoom += 5;
+                    }
+                },
+
+                zoomMinus: function() {
+                    this.mouseUp();
+                    if (this.zoom >= 65){
+                        this.zoom -= 5;
+                    }
+                },
+
+                validGrid: function() {
+                    this.mouseUp(); //arret de dessiner
+                    this.removeCanvas(); //nettoyer canvas si y a deja quelque chose dedans
+                    this.resetIndices(); //clean indices
+
+                    //creer un tableau par lignes
+
+                    for (let ligne=1; ligne<26; ligne++){
+                        let ligneTableau = [];
+                        let colTableau = [];
+                        let cptCol = 0;
+                        let cptLigne = 0;
+
+                        for (let col = 1; col<26 ; col++){
+                            let laCase = document.getElementById(ligne + "_" + col);
+                            let laCase2 = document.getElementById(col + "_" + ligne);
+                            let indiceLigne = document.getElementById("indiceL_" + ligne);
+
+            
+                            
+                            if (laCase.classList.contains("blackBg")){
+                                ligneTableau.push(true);
+                                cptLigne++;
+                            } else {
+                                ligneTableau.push(false);
+                                if (cptLigne > 0) {
+                                    indiceLigne.innerHTML = indiceLigne.innerHTML + cptLigne +" ";// pour les indice de la ligne 
+                                    cptLigne = 0;
+                                }
+                            }
+
+                             if (laCase2.classList.contains("blackBg")){
+                                colTableau.push(true);
+                                cptCol ++;
+                            } else {
+                                colTableau.push(false);
+                            }
+                        }
+                            this.arrayLineCases.push(ligneTableau);// ajout de lignes au tableau de lignes
+                            this.arrayColCases.push(colTableau);// ajout de colonne  au tableau de col
+                    }
+                            //Calcul nbres de cases colores pour chaques colonnes
+                        for (let col=1; col<26; col++){
+                            let cptCol = 0;
+                            
+                            for(let ligne=1; ligne<26; ligne++){
+                                let laCase = document.getElementById(ligne+"_" +col);
+                                let indiceCol = document.getElementById("indiceT_"+col);
+                                if (laCase.classList.contains("blackBg")) {
+                                    cptCol++;
+                                } else {
+                                    if(cptCol > 1){
+                                        indiceCol.innerHTML = indiceCol.innerHTML + cptCol + "<br/> <br/>"; // pour les indice de la ligne 
+                                        cptCol = 0;
+                                    }
+                                }
+                            }
+                        }
+                        //Masquage Indices
+                        for (let i=0; i<this.casesIndicesT.length; i++) {
+                                 console.log("pouet");
+                            this.casesIndicesT[i].dataset.html2canvasIgnore = "true";
+                        }
+                        for (let i=0; i<this.casesIndicesL.length; i++) {
+                            console.log("tagada");
+                            this.casesIndicesL[i].dataset.html2canvasIgnore = "true";
+                        }
+
+                        //creation image mignature de solution
+                        html2canvas(document.querySelector("#container")).then(
+                            canvas => {
+                                canvas.style.width = "680px";
+                                canvas.style.height = "500px";
+                                document.body.appendChild(canvas);
+
+                                //Export
+                                let image = canvas.toDataURL("image/png").replace("image/png","image/octet-stream");
+                                this.downloadGridImage(image,'Grille-Solution.png');
+                            });
+
+                            //Nettoyage de l image 
+                            this.resetGrid();
+
+                            //Affichages Indices 
+                            for (let i=0; i<this.casesIndicesT.length; i++) {
+                               delete this.casesIndicesT[i].dataset.html2canvasIgnore;
+                            }
+                            for (let i=0; i<this.casesIndicesL.length; i++) {
+                                delete this.casesIndicesL[i].dataset.html2canvasIgnore;
+                            }
+
+                            // creation de l image
+                            html2canvas(document.querySelector("#container")).then(
+                                canvas => {
+                                    document.body.appendChild(canvas);
+
+                                //Export
+                                let image = canvas.toDataURL("image/png").replace("image/png","image/octet-stream");
+                                this.downloadGridImage(image,'Grille.png');
+                            }
+                        );
+                }, 
+
+                downloadGridImage: function (data, fileName = 'Grille.png') {
+                    let a = document.createElement('a');
+                    a.href = data;
+                    a.download = fileName;
+                    document.body.appendChild(a);
+                    a.click();
+                },
+                
+                loadImage: function (event) {
+                    this.mouseUp();
+                    
+                    let file = document.querySelector('input[type=file]').files[0]; // acces a l input , rec le 1 files
+                    let reader =  new FileReader(); // lecture files
+                    let casesColoredAuto = [];
+
+                    reader.addEventListener("load", function() {
+                        let img = new Image();
+                        img.src = reader.result;
+
+                        img.onload = function () {
+                            let canvas = document.getElementById("previewCanvas");
+                            let context = canvas.getContext("2d");
+                            context.drawImage(img, 0,0,25, 25);
+
+                            //dessiner sur la grille
+                            for (let i=0; i<canvas.height; i++) {
+                                for (let j=0; j<canvas.width; j++) {
+                                    let pixel = context.getImageData(j, i, 1, 1).data;
+                                    if (pixel[3] > 48) { //48 => arbitraire c est pr la transparence
+                                        let col = i+1;
+                                        let row = j+1;
+                                        let targetDiv = document.getElementById(col+"_"+row);
+                                        targetDiv.classList.add("blackBg");
+                                        casesColoredAuto.push(targetDiv);
+                                    }
+                                }
+                            }
+                        };
+                    }, false);
+                    if (file) {
+                        reader.readAsDataURL(file);
+                    }
+                    this.casesColoredLoaded = casesColoredAuto;
+                }
+            }//methods
+
+        }).mount('#app');
+    </script>
+
+
+</html>

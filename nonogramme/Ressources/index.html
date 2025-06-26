@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>Nonogramme</title>
+	<script src="https://unpkg.com/vue@3"></script>
+	<script src="html2canvas.js"></script>
+	<link href='http://fonts.googleapis.com/css?family=Roboto' rel='stylesheet' type='text/css'>
+</head>
+
+<body>
+	<div id="app">
+		<input type="checkbox" id="checkboxColorMode" v-model="colorMode">
+  		<label for="checkboxColorMode">Activer le mode coloration</label>
+
+  		<div id="container" :style="'zoom:'+zoom+'%'">
+		    <!-- Indices haut -->
+		    <div id="caseIndiceT_First"></div>
+		    <div class="caseIndiceT noselect" v-for="c in 25" :id="'indiceT_'+c"></div>
+
+		    <!-- Grille -->
+		    <div class="ligne" v-for="l in 25">
+		      <span v-for="c in 25">
+		        <!-- Indices gauche -->
+		        <div v-if="c == 1" class="caseIndiceL noselect" :id="'indiceL_'+l"></div>
+		        <!-- Cases de la ligne -->
+		        <div class="case" :id="l+'_'+c" @mouseover="colorize" @mousedown="mouseDown" @mouseup="mouseUp"></div>
+		      </span>
+		    </div>
+		</div>
+
+		<div id="toolBar">
+		    <button @click="resetGridAndIndicex">Vider la grille</button> 
+		    <button @click="validGrid">Exporter la grille</button>
+		    <button @click="zoomMinus">Zoom -</button>
+		    <button @click="zoomPlus">Zoom +</button>
+		    <input type="file" @change="loadImage"/>
+		</div>
+
+		<canvas width="25" height="25" id="previewCanvas">
+	    	Désolé, votre navigateur ne prend pas en charge html5.
+	  	</canvas>
+	</div>
+</body>
+
+<script type="text/javascript">
+	Vue.createApp({
+    	data() {
+      		return {
+        		zoom: 75,
+        		isMouseDown: false,
+        		colorMode: true,
+        		casesColored : [],
+        		casesColoredLoaded : [],
+        		tableauColDeCases: [],
+        		tableauLignesDeCases: [],
+        		casesIndicesT: [],
+        		casesIndicesL: []
+      		}
+    	}, // data
+    	mounted: function () {
+		    this.casesIndicesT = document.getElementsByClassName("caseIndiceT")
+      		this.casesIndicesL = document.getElementsByClassName("caseIndiceL")
+	    }, // mounted
+	    methods: {
+	    	colorize: function (event) {
+		        if(this.isMouseDown) {
+		          targetId = event.currentTarget.id
+		          targetDiv = event.target
+		          if (this.colorMode) {
+		            targetDiv.classList.add("blackBg")
+		            this.casesColored.push(targetDiv)
+		          } else {
+		            targetDiv.classList.remove("blackBg")
+		          }
+		        }
+		    },
+	    	mouseDown: function (event) {
+	        	this.isMouseDown = true
+        		this.colorize(event)
+	      	},
+	      	mouseUp: function (event) {
+	        	this.isMouseDown = false
+	      	},
+	      	resetGrid: function () {
+		        this.mouseUp()
+		        // 1
+		        var nbCases = this.casesColored.length
+		        for (i = 0; i < nbCases; i++) {
+		          if(this.casesColored[i] && this.casesColored[i].classList)
+		            this.casesColored[i].classList.remove("blackBg")
+		        } 
+		        this.casesColored = []
+		        // 2
+		        nbCases = this.casesColoredLoaded.length
+		        for (i = 0; i < nbCases; i++) {
+		          if(this.casesColoredLoaded[i] && this.casesColoredLoaded[i].classList)
+		            this.casesColoredLoaded[i].classList.remove("blackBg")
+		        } 
+		        this.casesColoredLoaded = []
+	      	},
+	    	resetIndices: function () {
+	    		// Clean des indices
+		        // Top
+		        for (i = 0; i < this.casesIndicesT.length; i++) {
+		          this.casesIndicesT[i].innerHTML = ""
+		        }
+		        // Left
+		        for (i = 0; i < this.casesIndicesL.length; i++) {
+		          this.casesIndicesL[i].innerHTML = ""
+		        }
+      		},
+      		removeCanvas: function () {
+		        var elementsToClean = document.getElementsByTagName("canvas"), index;
+		        // Suppression des canvas (images)
+		        for (index = elementsToClean.length - 1; index >= 0; index--) {
+		          if(elementsToClean[index].id != "previewCanvas") {
+		            elementsToClean[index].parentNode.removeChild(elementsToClean[index]);
+		          }
+		        }
+
+		        var canvas = document.getElementById("previewCanvas");
+		        const context = canvas.getContext('2d');
+		        context.clearRect(0, 0, canvas.width, canvas.height);
+
+		    },
+      		resetGridAndIndicex: function () {
+	    		this.resetGrid()
+        		this.resetIndices()
+        		this.removeCanvas()
+      		},
+      		validGrid: function () {
+
+      		},
+      		zoomMinus: function () {
+      			this.mouseUp()
+		        if (this.zoom >= 65) {
+		        	this.zoom -= 5
+		        }
+		    },
+		    zoomPlus: function () {
+		    	this.mouseUp()
+		        if (this.zoom < 100) {
+		          this.zoom += 5
+		        }
+		    },
+		    validGrid: function () {
+		        this.mouseUp()
+		        this.removeCanvas()
+		        // Clean des indices
+		        this.resetIndices()
+		        // Création d'un tableau par lignes
+		        for(var ligne=1 ; ligne<26; ligne++) {
+		          var ligneArray = []
+		          var colArray = []
+		          var cpt1 = 0
+
+		          for(var col=1 ; col<26; col++) {
+		            var laCase = document.getElementById(ligne+"_"+col)
+		            var laCase2 = document.getElementById(col+"_"+ligne)
+		            var indiceLigne = document.getElementById("indiceL_"+ligne)
+
+		            if(laCase.classList.contains("blackBg")) {
+		              ligneArray.push(true)
+		              cpt1++
+		            } else {
+		              ligneArray.push(false)
+		              if(cpt1 > 0) {
+		                indiceLigne.innerHTML = indiceLigne.innerHTML + cpt1 + " | "
+		                cpt1 = 0
+		              }
+		            }
+
+		            if(laCase2.classList.contains("blackBg")) {
+		              colArray.push(true)
+		            } else {
+		              colArray.push(false)
+		            }
+		          }  
+		           // Ajout des lignes au tableau de lignes
+		          this.tableauLignesDeCases.push(ligneArray)
+		           // Ajout des col au tableau de col
+		          this.tableauColDeCases.push(colArray)
+		        } // For
+
+		        // Calcul des nb sur col
+		        for(var col=1 ; col<26; col++) {
+		          var cpt1 = 0
+		          for(var ligne=1 ; ligne<26; ligne++) {
+		            var laCase = document.getElementById(ligne+"_"+col)
+		            var indiceCol = document.getElementById("indiceT_"+col)
+		            if(laCase.classList.contains("blackBg")) {
+		              cpt1++
+		            } else {
+		              if(cpt1 > 0) {
+		                indiceCol.innerHTML = indiceCol.innerHTML + cpt1 + "<br/><br/>"
+		                cpt1 = 0
+		              }
+		            }
+		          }  
+		        } // For
+
+		        // Masquage indices
+		        for (i = 0; i < this.casesIndicesT.length; i++) {
+		          this.casesIndicesT[i].dataset.html2canvasIgnore = "true"
+		        }
+		        for (i = 0; i < this.casesIndicesL.length; i++) {
+		          this.casesIndicesL[i].dataset.html2canvasIgnore = "true"
+		        }
+
+		        // Création de l'image mignature de solution
+		        html2canvas(document.querySelector("#container")).then(canvas => {
+		            canvas.style.width = "680px"
+		            canvas.style.height = "500px"
+		            document.body.appendChild(canvas)
+		            // Export
+		            var image = canvas.toDataURL("image/png").replace("image/png", "image/octet-stream");
+		            this.downloadGridImage(image, 'Grille-Solution.png');
+		        });
+
+		        // Nettoyage image
+		        this.resetGrid()
+		        // Affichage indices
+		        for (i = 0; i < this.casesIndicesT.length; i++) {
+		          delete this.casesIndicesT[i].dataset.html2canvasIgnore;
+		        }
+		        for (i = 0; i < this.casesIndicesL.length; i++) {
+		          delete this.casesIndicesL[i].dataset.html2canvasIgnore;
+		        }
+
+		        // Création de l'image
+		        html2canvas(document.querySelector("#container")).then(canvas => {
+		            document.body.appendChild(canvas)
+		            // Export
+		            var image = canvas.toDataURL("image/png").replace("image/png", "image/octet-stream");
+		            this.downloadGridImage(image, 'Grille.png');
+		        });
+
+		    }, // Fin valid grid
+		    downloadGridImage: function(data, filename = 'Grille.png') {
+		        var a = document.createElement('a');
+		        a.href = data;
+		        a.download = filename;
+		        document.body.appendChild(a);
+		        a.click();
+		    },
+		    loadImage: function (event) {
+		    	this.mouseUp()
+
+		        var file = document.querySelector('input[type=file]').files[0];
+		        var reader = new FileReader();
+		        var casesColoredAuto = [];
+
+		        reader.addEventListener("load", function () {
+		          
+		          var img = new Image();
+		          img.src = reader.result;
+
+		          img.onload = function() {
+		            var canvas = document.getElementById("previewCanvas");
+		            var ctx = canvas.getContext("2d");
+		            ctx.drawImage(img, 0, 0, 25, 25);
+
+		            // Dessiner sur la grille 
+		            for (let i = 0; i < canvas.height; i++) {
+		              for (let j = 0; j < canvas.width; j++) {
+		                var pixel = ctx.getImageData(j, i, 1, 1).data;
+		                if (pixel[3] > 48) // Colorer
+		                {
+		                  var col = i+1;
+		                  var row = j+1;
+		                  var targetDiv = document.getElementById(col+"_"+row);
+		                  targetDiv.classList.add("blackBg");
+		                  casesColoredAuto.push(targetDiv);
+		                }
+		              }
+		            }
+		          };
+		        }, false);
+
+		        if (file) {
+		          reader.readAsDataURL(file);
+		        }
+
+		        this.casesColoredLoaded = casesColoredAuto;
+		    }
+    	} // methods
+  	}).mount('#app')
+</script>
+
+<style type="text/css">
+	body {
+	  background: #1a1a1a;
+	  color:  #b28135;
+	  font-family: 'Roboto', sans-serif;
+	}
+	#app {
+	  min-width: 900px;
+	}
+	#checkboxColorMode {
+	  width: 20px;
+	  height: 20px;
+	}
+	label {
+	  position: relative;
+	  top: -5px;
+	}
+
+	#container {
+	  width: 1160px;
+	}
+
+	.case {
+	  width: 32px;
+	  height: 32px;
+	  border:  1px solid #b28135;
+	  float: left;
+	}
+	.case:hover {
+	  cursor: pointer;
+	}
+	.ligne {
+	  clear: both;
+	}
+	.blackBg {
+	  background: rgba(100, 100, 100, 0.75);
+	}
+
+	#caseIndiceT_First {
+	  width: 304px;
+	  height: 32px;
+	  float: left;
+	}
+	.caseIndiceT, .caseIndiceL {
+	  float: left;
+	  border-width: 1px;
+	  border-style: solid;
+	}
+	.caseIndiceT {
+	  width: 32px;
+	  min-height: 140px;
+	  height: 284px;
+	  text-align: center;
+	  display: flex;
+	  flex-direction: column-reverse;
+	  border-top: none;
+	  border-image: linear-gradient(to bottom, transparent, #5e4217) 1;
+	}
+	.caseIndiceL {
+	  min-width: 138px;
+	  width: 300px;
+	  height: 26px;
+	  text-align: right;
+	  padding-top: 6px;
+	  padding-right: 2px;
+	  border-left:  none;
+	  border-image: linear-gradient(to right, transparent, #5e4217) 1;
+	}
+	#toolBar {
+	  clear: both;
+	}
+	button {
+	  margin-right: 10px;
+	  margin-top: 10px;
+	  font-family: 'Roboto', sans-serif;
+	}
+	.noselect {
+	  -webkit-touch-callout: none; /* iOS Safari */
+	    -webkit-user-select: none; /* Safari */
+	            user-select: none; /* Chromium */
+	}
+</style>
+
+</html>
