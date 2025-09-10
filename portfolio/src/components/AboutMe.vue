@@ -1,4 +1,6 @@
 <script setup>
+import { RouterLink } from 'vue-router';
+
 </script>
 
 
@@ -10,6 +12,7 @@
             J’aime bien les bases de données, les API, et râler quand le front casse tout (mais gentiment).
             Ce projet est un petit exercice en <span class="text-highlight-2">Vue.js</span>… donc oui, je touche aussi un peu au front, quand il faut. 😅
         </p>
+        <p> <RouterLink to="/contact">Contactez Moi</RouterLink> </p>
     </div>
 
 </template>

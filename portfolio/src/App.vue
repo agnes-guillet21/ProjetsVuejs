@@ -1,4 +1,5 @@
 <script setup>
+import { RouterView } from 'vue-router';
 import Header from './components/Header.vue';
 import PortfolioMain from './pages/PortfolioMain.vue'
 
@@ -14,7 +15,7 @@ import PortfolioMain from './pages/PortfolioMain.vue'
 
   <main>
 
-    <PortfolioMain />
+    <RouterView />
 
   </main>
 
