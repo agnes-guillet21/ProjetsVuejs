@@ -14,7 +14,10 @@
   "dependencies": {
     "@fontsource/roboto": "5.2.5",
     "@mdi/font": "7.4.47",
+    "chart.js": "^4.4.5",
     "vue": "^3.5.13",
+    "vue-chart-3": "^3.1.8",
+    "vue-chartjs": "^5.3.1",
     "vuetify": "^3.8.1"
   },
   "devDependencies": {
